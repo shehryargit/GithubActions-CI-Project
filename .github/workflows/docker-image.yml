@@ -58,7 +58,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Build the docker image
-      run: docker buildx build . -f Dockerfile --tag voting-service:latest --load
+      run: docker build . --file Dockerfile --tag voting-service:latest 
 
     - name: Trivy image scan
       run: trivy image --format table -o image-report.json voting-service:latest
