@@ -1,14 +1,16 @@
 name: CICD Pipeline
+
 on:
-  push:  
-    branches: [ "main" ]   
-    
+  push:
+    branches: ["main"]
+
 jobs:
   security-checks:
     runs-on: self-hosted
     needs: sonarqube
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Trivy
         run: |
           sudo apt-get install wget gnupg
@@ -16,52 +18,61 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
           sudo apt-get update -y
           sudo apt-get install trivy -y
+
       - name: Trivy fs scan
         run: trivy fs --format table -o fs-repo.json .
+
       - name: Gitleaks scan installation
         run: sudo apt install gitleaks -y
+
       - name: Gitleaks code scan
         run: gitleaks detect --source . --report-path gitleaks-report.json --report-format json
 
   sonarqube:
     runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v6
-      with:
-        # Disabling shallow clones is recommended for improving the relevancy of reporting
-        fetch-depth: 0
-    - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@v8.2.1
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      - uses: actions/checkout@v6
+        with:
+          # Disabling shallow clones is recommended for improving the relevancy of reporting
+          fetch-depth: 0
 
-    - name: SonarQube Quality Gate check
-      id: sonarqube-quality-gate-check
-      uses: sonarsource/sonarqube-quality-gate-action@master
-      with:
-        pollingTimeoutSec: 600
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v8.2.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
-   Build:
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+  Build:
     runs-on: self-hosted
     needs: [Security-Checks, SonarQube]
     steps:
       - uses: actions/checkout@v4
+
       - name: Build the docker image
         run: docker build . --file dockerfile --tag voting-service:latest
+
       - name: Trivy image scan
         run: trivy image --format table -o image-report.json voting-service:latest
+
       - name: Login to Azure Container Registry
         run: |
-          echo "${{ secrets.ACR_PASSWORD }} | docker login ${{ secrets.ACR_LOGIN_SERVER }} \
+          echo "${{ secrets.ACR_PASSWORD }} | docker login ${{ secrets.ACR_LOGIN_SERVER }}
           --username ${{ secrets.ACR_USERNAME }} --password-stdin
+
       - name: Tag image to ACR
         run: |
           docker tag voting-service:latest ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:latest
           docker tag voting-service:latest ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:${{ github.sha }}
+
       - name: Push image to ACR
         run: |
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:latest
