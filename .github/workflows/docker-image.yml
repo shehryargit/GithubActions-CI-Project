@@ -2,9 +2,11 @@ name: CICD Pipeline
 on:
   push:  
     branches: [ "main" ]   
+    
 jobs:
   security-checks:
     runs-on: self-hosted
+    needs: sonarqube
     steps:
       - uses: actions/checkout@v4
       - name: Install Trivy
