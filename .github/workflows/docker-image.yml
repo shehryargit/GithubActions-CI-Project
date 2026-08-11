@@ -4,7 +4,7 @@ on:
     branches: [ "main" ]
 jobs:
   security-checks:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - name: Install Trivy
@@ -22,7 +22,7 @@ jobs:
         run: gitleaks detect --source . --report-path gitleaks-report.json --report-format json
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: security-checks
     steps:
       - uses: actions/checkout@v4
