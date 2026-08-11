@@ -53,12 +53,12 @@ jobs:
 
   Build:
     runs-on: self-hosted
-    needs: [Security-Checks, SonarQube]
+    needs: SonarQube
     steps:
       - uses: actions/checkout@v4
 
       - name: Build the docker image
-        run: docker build . --file dockerfile --tag voting-service:latest
+        run: docker buildx build . --file dockerfile --tag voting-service:latest --load
 
       - name: Trivy image scan
         run: trivy image --format table -o image-report.json voting-service:latest
