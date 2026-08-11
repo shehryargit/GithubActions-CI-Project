@@ -28,7 +28,7 @@ jobs:
         sudo apt-get update -y
         sudo apt-get install trivy -y 
     - name: Trivvy fs scan
-      run: trivvy fs --format table -o fs-repo.json .
+      run: trivy fs --format table -o fs-repo.json .
     - name: Gitleaks scan installation
       run: sudo apt install gitleaks -y
 
