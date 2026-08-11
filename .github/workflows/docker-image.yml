@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 jobs:
-  security-checks:
+  security-checks:   
     runs-on: self-hosted
     needs: sonarqube
     steps:
