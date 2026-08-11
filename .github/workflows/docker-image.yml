@@ -51,29 +51,29 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
-  Build:
+  Build-Push-Image:
     runs-on: self-hosted
-    needs: SonarQube
+    needs: [sonarqube, security-checks]
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Build the docker image
-        run: docker buildx build . --file dockerfile --tag voting-service:latest --load
+    - name: Build the docker image
+      run: docker buildx build . -f Dockerfile --tag voting-service:latest --load
 
-      - name: Trivy image scan
-        run: trivy image --format table -o image-report.json voting-service:latest
+    - name: Trivy image scan
+      run: trivy image --format table -o image-report.json voting-service:latest
 
-      - name: Login to Azure Container Registry
-        run: |
-          echo "${{ secrets.ACR_PASSWORD }} | docker login ${{ secrets.ACR_LOGIN_SERVER }}
+    - name: Login to Azure Container Registry
+      run: |
+        echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} \
           --username ${{ secrets.ACR_USERNAME }} --password-stdin
 
-      - name: Tag image to ACR
-        run: |
-          docker tag voting-service:latest ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:latest
-          docker tag voting-service:latest ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:${{ github.sha }}
+    - name: Tag image for ACR
+      run: |
+        docker tag voting-service:latest ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:latest
+        docker tag voting-service:latest ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:${{ github.sha }}
 
-      - name: Push image to ACR
-        run: |
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:latest
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:${{ github.sha }}
+    - name: Push image to ACR
+      run: |
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:latest
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/voting-service:${{ github.sha }}
