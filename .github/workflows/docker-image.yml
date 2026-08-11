@@ -14,3 +14,23 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag voting-service:latest
+
+  security-checks: 
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Trivvy fs scan
+      run: |
+        sudo apt-get install wget gnupg
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update -y
+        sudo apt-get install trivy -y 
+    - name: Trivvy fs scan
+      run: trivvy fs --format table -o fs-repo.json .
+    - name: Gitleaks scan installation
+      run: sudo apt install gitleaks -y
+
+    - name: Gitleaks code scam
+      run: gitleaks detect source . -r gitleaks-report.json -f json
